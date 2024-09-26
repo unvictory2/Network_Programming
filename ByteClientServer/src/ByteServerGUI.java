@@ -9,12 +9,15 @@ import java.net.Socket;
 
 public class ByteServerGUI extends JFrame {
     int port;
+    JTextArea t_display; // 상단의 텍스트필드. 이벤트 처리 등을 위해 현재 클래스의 다른 메서드에서도 접근이 필요한 요소는 참조변수의 선언을 멤버필드(클래스의 멤버변수를 선언하는 위치) 영역에 선언
+    // 즉 기존에 createDisplayPanel()에서 생성하던 textArea는 다른 곳에서도 접근 가능해야 하니까 여기에 만든다. 이름수정.
 
     public ByteServerGUI(int port) {
         this.port = port;
 
         buildGUI();
-        this.setBounds(100,200,300,400);
+        this.setBounds(100,200,400,300);
+        this.setTitle("ByteServerGUI");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
     } // 생성자
@@ -29,10 +32,10 @@ public class ByteServerGUI extends JFrame {
         Socket clientSocket = null;
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            System.out.println("서버 시작");
+            t_display.append("서버가 시작되었습니다.\n");
             while (true) { // 클라이언트 접속 기다림
                 clientSocket = serverSocket.accept(); // 접속 받음
-                System.out.println("클라이언트가 연결되었습니다.");
+                t_display.append("클라이언트가 연결되었습니다\n");
                 receiveMessages(clientSocket); // 해당 클라이언트가 보내는 메시지 받기
             }
         } catch (IOException e) {
@@ -42,14 +45,14 @@ public class ByteServerGUI extends JFrame {
     }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
-        JTextArea textArea = new JTextArea("서버가 시작되었습니다.\n");
-        textArea.setEditable(false);
+        t_display = new JTextArea();
+        t_display.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(); // 스크롤 되게
-        scrollPane.add(textArea);
+        scrollPane.add(t_display);
 
         JPanel panel = new JPanel(new BorderLayout());
 
-        panel.add(textArea, BorderLayout.CENTER);
+        panel.add(t_display, BorderLayout.CENTER);
 
         return panel;
     }
@@ -60,7 +63,7 @@ public class ByteServerGUI extends JFrame {
         endButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                // TODO
+                System.exit(0);
             }
         });
 
@@ -78,7 +81,7 @@ public class ByteServerGUI extends JFrame {
             while ((message = in.read()) != -1) { // -1이면 비었다는 뜻
                 printDisplay("클라이언트 메시지: " + message); // 출력
             }
-            System.out.println("클라이언트가 연결을 종료했습니다.");
+            t_display.append("클라이언트가 연결을 종료했습니다.\n");
         } catch (IOException e) {
             System.err.println("서버 읽기 오류 > " + e.getMessage());
             System.exit(-1);
@@ -91,13 +94,11 @@ public class ByteServerGUI extends JFrame {
             }
         }
     }
-    //!!!!문제발생!!!! textArea는 지역 변수니까 printDisplay가 알 수가 없다.
+
     private void printDisplay(String message) {
-        textArea.append(message + "\n");
-        textArea.setCaretPosition(textArea.getDocument().getLength());
+        t_display.append(message + "\n");
+        t_display.setCaretPosition(t_display.getDocument().getLength());
     }
-
-
 
     public static void main(String[] args) {
         int port = 54321;

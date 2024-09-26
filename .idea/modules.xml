@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ByteClient/ByteClient.iml" filepath="$PROJECT_DIR$/ByteClient/ByteClient.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ByteServerGUI/ByteServerGUI.iml" filepath="$PROJECT_DIR$/ByteServerGUI/ByteServerGUI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Network_Programming.iml" filepath="$PROJECT_DIR$/.idea/Network_Programming.iml" />
+    </modules>
+  </component>
+</project>
