@@ -4,26 +4,30 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
-public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되는 방법. JBasicFrame1에서는 자기 안에 프레임을 뒀었다.
+public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되는 방법. JBasicFrame1에서는 자기 안에 프레임을 뒀었다.
     private final String serverAddress;
     private final int serverPort;
     private OutputStream out;
+    private DataOutputStream dataOut;
+    private BufferedOutputStream bufferOut;
     JButton b_connect, b_disconnect, b_exit; // 하단에 있는 3개의 버튼
     JTextArea t_display; // 상단의 디스플레이
     JTextField t_input; // 입력창
 
-    public ByteClientGUI(String serverAddress, int serverPort) {
+    public IntClientGUI(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
 
         buildGUI();
 
         this.setBounds(500,200,400,300);
-        this.setTitle("ByteClientGUI");
+        this.setTitle("IntClientGUI");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
     }
@@ -128,6 +132,8 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         try {
             socket = new Socket(serverAddress, serverPort); // 소캣 연결
             out = socket.getOutputStream();
+            bufferOut = new BufferedOutputStream(out);
+            dataOut = new DataOutputStream(bufferOut);
             System.out.println("소캣 연결 성공");
         } catch (IOException e) {
             System.err.println("소캣 연결 오류 : " + e.getMessage());
@@ -142,7 +148,8 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
         else {
             try {
-                out.write(Integer.parseInt(inputText)); // 정수로 바꾸기
+                dataOut.writeInt(Integer.parseInt(inputText));
+                dataOut.flush();
             }
             catch (NumberFormatException e) { // 정수 아니면 오류
                 System.err.println("정수가 아님! " + e.getMessage());
@@ -159,6 +166,7 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     private void disconnect() {
         try {
             out.close();
+            dataOut.close();
         } catch (IOException e) {
             System.err.println("클라이언트 닫기 오류 > " + e.getMessage());
             System.exit(-1);
@@ -168,13 +176,11 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         b_exit.setEnabled(true);
     }
 
-
-
     public static void main(String[] args) {
         String serverAddress = "localhost";
         int serverPort = 54321;
 
-        ByteClientGUI client = new ByteClientGUI(serverAddress, serverPort);
+        IntClientGUI client = new IntClientGUI(serverAddress, serverPort);
 
     }
 }
