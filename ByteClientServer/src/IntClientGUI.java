@@ -44,12 +44,9 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
         t_display.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(); // 스크롤 되게
-        scrollPane.add(t_display);
 
         JPanel panel = new JPanel(new BorderLayout());
-
-        panel.add(t_display, BorderLayout.CENTER);
+        panel.add(new JScrollPane(t_display), BorderLayout.CENTER);
 
         return panel;
     }

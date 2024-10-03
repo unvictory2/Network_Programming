@@ -17,13 +17,13 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     JTextField t_input; // 입력창
 
     public ByteClientGUI(String serverAddress, int serverPort) {
+        super("ByteClient GUI");
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
 
         buildGUI();
 
         this.setBounds(500,200,400,300);
-        this.setTitle("ByteClientGUI");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
     }
@@ -38,14 +38,13 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
-        t_display = new JTextArea();
-        t_display.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(); // 스크롤 되게
-        scrollPane.add(t_display);
-
         JPanel panel = new JPanel(new BorderLayout());
 
-        panel.add(t_display, BorderLayout.CENTER);
+        t_display = new JTextArea();
+        t_display.setEditable(false);
+
+        //JScrollPane = 스크롤 되게
+        panel.add(new JScrollPane(t_display), BorderLayout.CENTER);
 
         return panel;
     }

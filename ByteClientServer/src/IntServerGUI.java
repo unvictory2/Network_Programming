@@ -13,11 +13,11 @@ public class IntServerGUI extends JFrame {
     // 즉 기존에 createDisplayPanel()에서 생성하던 textArea는 다른 곳에서도 접근 가능해야 하니까 여기에 만든다. 이름수정.
 
     public IntServerGUI(int port) {
+        super("IntServerGUI");
         this.port = port;
-
         buildGUI();
         this.setBounds(100,200,400,300);
-        this.setTitle("IntServerGUI");
+
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
     } // 생성자
@@ -49,12 +49,9 @@ public class IntServerGUI extends JFrame {
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
         t_display.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(); // 스크롤 되게
-        scrollPane.add(t_display);
 
         JPanel panel = new JPanel(new BorderLayout());
-
-        panel.add(t_display, BorderLayout.CENTER);
+        panel.add(new JScrollPane(t_display), BorderLayout.CENTER);
 
         return panel;
     }
