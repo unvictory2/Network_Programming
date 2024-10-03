@@ -33,13 +33,13 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     }
 
     private void buildGUI() {
-            JPanel southPanel = new JPanel(new GridLayout(2,0)); // 아래에 갈 패널 준비
-            southPanel.add(createInputPanel());
-            southPanel.add(createControlPanel());
+        JPanel southPanel = new JPanel(new GridLayout(2,0)); // 아래에 갈 패널 준비
+        southPanel.add(createInputPanel());
+        southPanel.add(createControlPanel());
 
-            this.add(createDisplayPanel(), BorderLayout.CENTER);
-            this.add(southPanel, BorderLayout.SOUTH);
-        }
+        this.add(createDisplayPanel(), BorderLayout.CENTER);
+        this.add(southPanel, BorderLayout.SOUTH);
+    }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
@@ -89,40 +89,40 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
 
     private JPanel createControlPanel() { // 제일 밑단 버튼 3개, 접속하기 접속끊기 종료하기
 
-            b_connect = new JButton("접속하기");
-            b_connect.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    connectToServer();
-                    //접속 끊기 전에는 종료하거나 다시 접속하기 불가
-                }
-            });
+        b_connect = new JButton("접속하기");
+        b_connect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                connectToServer();
+                //접속 끊기 전에는 종료하거나 다시 접속하기 불가
+            }
+        });
 
-            b_disconnect = new JButton("접속 끊기");
-            b_disconnect.setEnabled(false); // 처음엔 비활성화
-            b_disconnect.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    disconnect();
-                }
-            });
+        b_disconnect = new JButton("접속 끊기");
+        b_disconnect.setEnabled(false); // 처음엔 비활성화
+        b_disconnect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                disconnect();
+            }
+        });
 
-            b_exit = new JButton("종료하기");
-            b_exit.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    System.exit(0);
-                }
-            });
+        b_exit = new JButton("종료하기");
+        b_exit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                System.exit(0);
+            }
+        });
 
-            JPanel panel = new JPanel(new GridLayout(0,3));
+        JPanel panel = new JPanel(new GridLayout(0,3));
 
-            panel.add(b_connect);
-            panel.add(b_disconnect);
-            panel.add(b_exit);
+        panel.add(b_connect);
+        panel.add(b_disconnect);
+        panel.add(b_exit);
 
-            return panel;
-        }
+        return panel;
+    }
 
     private void connectToServer() {
         Socket socket;
@@ -163,6 +163,7 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     private void disconnect() {
         try {
             out.close();
+            bufferOut.close();
             dataOut.close();
         } catch (IOException e) {
             System.err.println("클라이언트 닫기 오류 > " + e.getMessage());
