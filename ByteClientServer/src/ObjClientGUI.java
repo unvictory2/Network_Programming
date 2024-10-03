@@ -4,46 +4,44 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
-public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되는 방법. JBasicFrame1에서는 자기 안에 프레임을 뒀었다.
+public class ObjClientGUI extends JFrame { // 내가 프레임의 후손이 되는 방법. JBasicFrame1에서는 자기 안에 프레임을 뒀었다.
     private final String serverAddress;
     private final int serverPort;
-    private OutputStream out;
+    private ObjectOutputStream out;
+
     JButton b_connect, b_disconnect, b_exit; // 하단에 있는 3개의 버튼
     JTextArea t_display; // 상단의 디스플레이
     JTextField t_input; // 입력창
 
-    public ByteClientGUI(String serverAddress, int serverPort) {
-        super("ByteClient GUI");
+    public ObjClientGUI(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
 
         buildGUI();
 
         this.setBounds(500,200,400,300);
+        this.setTitle("ObjClientGUI");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
     }
 
     private void buildGUI() {
-            JPanel southPanel = new JPanel(new GridLayout(2,0)); // 아래에 갈 패널 준비
-            southPanel.add(createInputPanel());
-            southPanel.add(createControlPanel());
+        JPanel southPanel = new JPanel(new GridLayout(2,0)); // 아래에 갈 패널 준비
+        southPanel.add(createInputPanel());
+        southPanel.add(createControlPanel());
 
-            this.add(createDisplayPanel(), BorderLayout.CENTER);
-            this.add(southPanel, BorderLayout.SOUTH);
-        }
+        this.add(createDisplayPanel(), BorderLayout.CENTER);
+        this.add(southPanel, BorderLayout.SOUTH);
+    }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
-        JPanel panel = new JPanel(new BorderLayout());
-
         t_display = new JTextArea();
         t_display.setEditable(false);
 
-        //JScrollPane = 스크롤 되게
+        JPanel panel = new JPanel(new BorderLayout());
         panel.add(new JScrollPane(t_display), BorderLayout.CENTER);
 
         return panel;
@@ -87,46 +85,47 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
 
     private JPanel createControlPanel() { // 제일 밑단 버튼 3개, 접속하기 접속끊기 종료하기
 
-            b_connect = new JButton("접속하기");
-            b_connect.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    connectToServer();
-                    //접속 끊기 전에는 종료하거나 다시 접속하기 불가
-                }
-            });
+        b_connect = new JButton("접속하기");
+        b_connect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                connectToServer();
+                //접속 끊기 전에는 종료하거나 다시 접속하기 불가
+            }
+        });
 
-            b_disconnect = new JButton("접속 끊기");
-            b_disconnect.setEnabled(false); // 처음엔 비활성화
-            b_disconnect.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    disconnect();
-                }
-            });
+        b_disconnect = new JButton("접속 끊기");
+        b_disconnect.setEnabled(false); // 처음엔 비활성화
+        b_disconnect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                disconnect();
+            }
+        });
 
-            b_exit = new JButton("종료하기");
-            b_exit.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    System.exit(0);
-                }
-            });
+        b_exit = new JButton("종료하기");
+        b_exit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                System.exit(0);
+            }
+        });
 
-            JPanel panel = new JPanel(new GridLayout(0,3));
+        JPanel panel = new JPanel(new GridLayout(0,3));
 
-            panel.add(b_connect);
-            panel.add(b_disconnect);
-            panel.add(b_exit);
+        panel.add(b_connect);
+        panel.add(b_disconnect);
+        panel.add(b_exit);
 
-            return panel;
-        }
+        return panel;
+    }
 
     private void connectToServer() {
         Socket socket;
         try {
             socket = new Socket(serverAddress, serverPort); // 소캣 연결
-            out = socket.getOutputStream();
+            // 소캣 > BufferedOutputStream > ObjectOutputStream
+            out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
             System.out.println("소캣 연결 성공");
         } catch (IOException e) {
             System.err.println("소캣 연결 오류 : " + e.getMessage());
@@ -140,8 +139,11 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     private void sendMessage(String inputText) {
         if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
         else {
+            TestMsg objectMsg = new TestMsg(inputText);
             try {
-                out.write(Integer.parseInt(inputText)); // 정수로 바꾸기
+//                out.writeObject(new TestMsg(inputText));
+                out.writeObject(objectMsg);
+                out.flush();
             }
             catch (NumberFormatException e) { // 정수 아니면 오류
                 System.err.println("정수가 아님! " + e.getMessage());
@@ -150,14 +152,14 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
                 System.err.println("클라이언트 쓰기 오류 > " + e.getMessage());
                 System.exit(-1);
             }
-            t_display.append("나: " + inputText + "\n");
+            t_display.append("나: " + inputText + "로 객체 만들어서 " + objectMsg.toString() + "\n");
             t_input.setText(""); // 보낸 후 입력창은 비우기
         }
     }
 
     private void disconnect() {
         try {
-            out.close();
+            if(out!=null) out.close();
         } catch (IOException e) {
             System.err.println("클라이언트 닫기 오류 > " + e.getMessage());
             System.exit(-1);
@@ -167,11 +169,24 @@ public class ByteClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         b_exit.setEnabled(true);
     }
 
+    private class TestMsg implements Serializable {
+        String msg;
+
+        TestMsg(String msg) {
+            this.msg = msg;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + msg + "]";
+        }
+    }
+
     public static void main(String[] args) {
         String serverAddress = "localhost";
         int serverPort = 54321;
 
-        ByteClientGUI client = new ByteClientGUI(serverAddress, serverPort);
+        ObjClientGUI client = new ObjClientGUI(serverAddress, serverPort);
 
     }
 }

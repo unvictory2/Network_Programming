@@ -6,17 +6,17 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class MsgServerGUI extends JFrame {
+public class ObjServerGUI extends JFrame {
     int port;
     ServerSocket serverSocket;
     JTextArea t_display; // 상단의 텍스트필드. 이벤트 처리 등을 위해 현재 클래스의 다른 메서드에서도 접근이 필요한 요소는 참조변수의 선언을 멤버필드(클래스의 멤버변수를 선언하는 위치) 영역에 선언
     // 즉 기존에 createDisplayPanel()에서 생성하던 textArea는 다른 곳에서도 접근 가능해야 하니까 여기에 만든다. 이름수정.
 
-    public MsgServerGUI(int port) {
-        super("MsgServerGUI");
+    public ObjServerGUI(int port) {
+        super("ObjServerGUI");
         this.port = port;
         buildGUI();
-        this.setBounds(100, 200, 400, 300);
+        this.setBounds(100,200,400,300);
 
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
@@ -78,45 +78,75 @@ public class MsgServerGUI extends JFrame {
     }
 
     private void receiveMessages(Socket cs) {
-        BufferedReader in = null;
-        String message;
+        ObjectInputStream in = null;
         try {
-            in = new BufferedReader(new InputStreamReader(cs.getInputStream(), "UTF-8"));
-            while ((message = in.readLine()) != null) {
-                printDisplay("클라이언트 메시지: " + message);
+            in = new ObjectInputStream(new BufferedInputStream(cs.getInputStream()));
+            while (true) {
+                TestMsg message;
+                try {
+                    message = (TestMsg)in.readObject();
+                    printDisplay("클라이언트 메시지: " + message.toString());
+                } catch (IOException e) {
+                    try {
+                        t_display.append("클라이언트가 연결을 종료했습니다.\n");
+                        in.close();
+                        cs.close();
+                        break;
+                    } catch (IOException ex) {
+                        System.err.println("서버 닫기 오류 > " + e.getMessage());
+                        System.exit(-1);
+                    }
+                } catch (ClassNotFoundException e) {
+                    System.err.println("클래스를 찾지 못함 > " + e.getMessage());
+                    System.exit(-1);
+                }
             }
-            t_display.append("클라이언트가 연결을 종료했습니다.\n");
         } catch (IOException e) {
             System.err.println("서버 읽기 오류 > " + e.getMessage());
             System.exit(-1);
         } finally {
             try {
                 if (in != null) in.close();
-            } catch (IOException ex) {
-                System.err.println("서버 닫기 오류 > " + ex.getMessage());
+                cs.close();
+            } catch (IOException e) {
+                System.err.println("서버 닫기 오류 > " + e.getMessage());
                 System.exit(-1);
             }
         }
     }
 
     private class ClientHandler extends Thread {
-    private final Socket clientSocket;
+        private final Socket clientSocket;
 
-    public ClientHandler(Socket clientSocket) {
-        this.clientSocket = clientSocket;
+        public ClientHandler(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
+
+        @Override
+        public void run() {
+            // 특정 소캣에 대해서 receiveMessages
+            receiveMessages(clientSocket);
+        }
     }
 
-    @Override
-    public void run() {
-        // 특정 소캣에 대해서 receiveMessages
-        receiveMessages(clientSocket);
+    private class TestMsg implements Serializable {
+        String msg;
+
+        TestMsg(String msg) {
+            this.msg = msg;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + msg + "]";
+        }
     }
-}
 
     public static void main(String[] args) {
         int port = 54321;
 
-        MsgServerGUI server = new MsgServerGUI(port);
+        ObjServerGUI server = new ObjServerGUI(port);
         server.startServer();
     }
+
 }

@@ -13,9 +13,7 @@ import java.net.Socket;
 public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되는 방법. JBasicFrame1에서는 자기 안에 프레임을 뒀었다.
     private final String serverAddress;
     private final int serverPort;
-    private OutputStream out;
-    private DataOutputStream dataOut;
-    private BufferedOutputStream bufferOut;
+    private DataOutputStream out;
     JButton b_connect, b_disconnect, b_exit; // 하단에 있는 3개의 버튼
     JTextArea t_display; // 상단의 디스플레이
     JTextField t_input; // 입력창
@@ -128,9 +126,7 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         Socket socket;
         try {
             socket = new Socket(serverAddress, serverPort); // 소캣 연결
-            out = socket.getOutputStream();
-            bufferOut = new BufferedOutputStream(out);
-            dataOut = new DataOutputStream(bufferOut);
+            out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
             System.out.println("소캣 연결 성공");
         } catch (IOException e) {
             System.err.println("소캣 연결 오류 : " + e.getMessage());
@@ -145,8 +141,8 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
         else {
             try {
-                dataOut.writeInt(Integer.parseInt(inputText));
-                dataOut.flush();
+                out.writeInt(Integer.parseInt(inputText));
+                out.flush();
             }
             catch (NumberFormatException e) { // 정수 아니면 오류
                 System.err.println("정수가 아님! " + e.getMessage());
@@ -162,9 +158,7 @@ public class IntClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
 
     private void disconnect() {
         try {
-            out.close();
-            bufferOut.close();
-            dataOut.close();
+            if (out != null) out.close();
         } catch (IOException e) {
             System.err.println("클라이언트 닫기 오류 > " + e.getMessage());
             System.exit(-1);

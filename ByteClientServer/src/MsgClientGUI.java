@@ -11,7 +11,6 @@ public class MsgClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
     private final String serverAddress;
     private final int serverPort;
     private Writer out;
-    private BufferedWriter bufferOut;
     JButton b_connect, b_disconnect, b_exit; // 하단에 있는 3개의 버튼
     JTextArea t_display; // 상단의 디스플레이
     JTextField t_input; // 입력창
@@ -124,8 +123,7 @@ public class MsgClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         Socket socket;
         try {
             socket = new Socket(serverAddress, serverPort); // 소캣 연결
-            out = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
-            bufferOut = new BufferedWriter(out);
+            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
             System.out.println("소캣 연결 성공");
         } catch (IOException e) {
             System.err.println("소캣 연결 오류 : " + e.getMessage());
@@ -157,8 +155,7 @@ public class MsgClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
 
     private void disconnect() {
         try {
-            out.close();
-            bufferOut.close();
+            if(out!=null) out.close();
         } catch (IOException e) {
             System.err.println("클라이언트 닫기 오류 > " + e.getMessage());
             System.exit(-1);
@@ -173,7 +170,6 @@ public class MsgClientGUI extends JFrame{ // 내가 프레임의 후손이 되�
         int serverPort = 54321;
 
         MsgClientGUI client = new MsgClientGUI(serverAddress, serverPort);
-
     }
 }
 

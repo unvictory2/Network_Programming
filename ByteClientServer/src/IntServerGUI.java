@@ -78,23 +78,18 @@ public class IntServerGUI extends JFrame {
     }
 
     private void receiveMessages(Socket cs) {
-        InputStream in = null;
-        DataInputStream dataIn = null;
-        BufferedInputStream bufferIn = null;
+        DataInputStream in = null;
         try {
-            in = cs.getInputStream();
-            bufferIn = new BufferedInputStream(in);
-            dataIn = new DataInputStream(bufferIn);
+            in = new DataInputStream(new BufferedInputStream(cs.getInputStream()));
             int message = 0;
             while (true) {
                 try {
-                    message = dataIn.readInt();
+                    message = in.readInt();
                     printDisplay("클라이언트 메시지: " + message);
                 } catch (IOException e) {
                     try {
                         t_display.append("클라이언트가 연결을 종료했습니다.\n");
-                        if (in != null) in.close();
-                        if (dataIn != null) dataIn.close();
+                        in.close();
                         cs.close();
                         break;
                     } catch (IOException ex) {
@@ -109,7 +104,6 @@ public class IntServerGUI extends JFrame {
         } finally {
             try {
                 if (in != null) in.close();
-                if (dataIn != null) dataIn.close();
                 cs.close();
             } catch (IOException e) {
                 System.err.println("서버 닫기 오류 > " + e.getMessage());
