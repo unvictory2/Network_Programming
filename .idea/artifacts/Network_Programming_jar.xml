@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Network_Programming:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Network_Programming_jar</output-path>
+    <root id="archive" name="Network_Programming.jar">
+      <element id="module-output" name="ByteClientServer" />
+    </root>
+  </artifact>
+</component>
