@@ -5,18 +5,20 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Vector;
 
 public class MultiChatServer extends JFrame {
     private int port;
     private ServerSocket serverSocket;
     private JTextArea t_display;
-    private JTextField t_input;
-    private JButton b_connect, b_disconnect, b_exit, b_send;
-    private BufferedWriter out;
+    private JButton b_connect, b_disconnect, b_exit;
+
+    private Vector<ClientHandler> users = new Vector<>();
+
     private Thread acceptThread = null;
 
     public MultiChatServer(int port) {
-        super("P2PChatServerGUI");
+        super("MulTiChatServerGUI");
         this.port = port;
         buildGUI();
         this.setBounds(100, 200, 400, 300);
@@ -27,8 +29,7 @@ public class MultiChatServer extends JFrame {
 
     private void buildGUI() {
 
-        JPanel southPanel = new JPanel(new GridLayout(2,0)); // 아래에 갈 패널 준비
-        southPanel.add(createInputPanel());
+        JPanel southPanel = new JPanel(new GridLayout(1,0)); // 아래에 갈 패널 준비
         southPanel.add(createControlPanel());
 
         this.add(createDisplayPanel(), BorderLayout.CENTER);
@@ -48,6 +49,7 @@ public class MultiChatServer extends JFrame {
                 printDisplay("클라이언트가 연결됐습니다.");
                 //스레드 생성해서 시키기
                 ClientHandler cHandler = new ClientHandler(clientSocket);
+                users.add(cHandler);
                 cHandler.start();
             }
         } catch (IOException e) {
@@ -104,8 +106,6 @@ public class MultiChatServer extends JFrame {
                 disconnect();
                 b_connect.setEnabled(true);
                 b_disconnect.setEnabled(false);
-                t_input.setEnabled(false);
-                b_send.setEnabled(false);
                 b_exit.setEnabled(true);
             }
         });
@@ -119,8 +119,9 @@ public class MultiChatServer extends JFrame {
                 }
                 catch (IOException e) {
                     System.err.println("서버 닫기 오류 > " + e.getMessage());
+                    System.exit(-1);
                 }
-                System.exit(-1);
+                System.exit(0);
             }
         });
 
@@ -134,55 +135,9 @@ public class MultiChatServer extends JFrame {
         return panel;
     }
 
-    private JPanel createInputPanel() { // 두 번째 단 입력창과 보내기 버튼
-        t_input = new JTextField(30);
-        t_input.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                sendMessage(t_input.getText());
-//                receiveMessage();
-            }
-        });
-
-        b_send = new JButton("보내기");
-        b_send.setEnabled(false);
-        b_send.addActionListener(new ActionListener() { // 이벤트 리스너
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                sendMessage(t_input.getText());
-//                receiveMessage();
-            }
-        });
-
-        JPanel panel = new JPanel(new BorderLayout());
-
-        panel.add(t_input, BorderLayout.CENTER);
-        panel.add(b_send, BorderLayout.EAST);
-
-        return panel;
-    }
-
     private void printDisplay(String message) {
         t_display.append(message + "\n");
         t_display.setCaretPosition(t_display.getDocument().getLength());
-    }
-
-    private void sendMessage(String inputText) {
-        if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
-        else {
-            try {
-                ((BufferedWriter)out).write(inputText + '\n');
-                out.flush();
-            }
-            catch (NumberFormatException e) { // 정수 아니면 오류
-                System.err.println("정수가 아님! " + e.getMessage());
-                return;
-            } catch (IOException e) {
-                System.err.println("클라이언트 쓰기 오류 > " + e.getMessage());
-                System.exit(-1);
-            }
-            t_display.append("나: " + inputText + "\n");
-            t_input.setText(""); // 보낸 후 입력창은 비우기
-        }
     }
 
     private void disconnect() {
@@ -198,40 +153,74 @@ public class MultiChatServer extends JFrame {
 
     private class ClientHandler extends Thread {
         private final Socket clientSocket;
+        private BufferedWriter out;
+        String uid;
 
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
-            t_input.setEnabled(true);
-            b_send.setEnabled(true);
     }
 
-    private void receiveMessages(Socket cs) {
-            try {
-                BufferedReader in = new BufferedReader(new InputStreamReader(cs.getInputStream(), "UTF-8"));
-                out = new BufferedWriter(new OutputStreamWriter(cs.getOutputStream(), "UTF-8"));
-
-                String message;
-                while ((message = in.readLine()) != null) {
-                    printDisplay("클라이언트 메시지: " + message);
-                }
-                printDisplay("클라이언트가 연결을 종료했습니다.\n");
-            } catch (IOException e) {
-                System.err.println("서버 읽기 오류 > " + e.getMessage());
-            } finally {
+        private void sendMessage(String inputText) {
+            if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
+            else {
                 try {
-                    cs.close();
-                } catch (IOException ex) {
-                    System.err.println("서버 닫기 오류 > " + ex.getMessage());
+                    ((BufferedWriter)out).write(inputText + '\n');
+                    out.flush();
+                } catch (IOException e) {
+                    System.err.println("서버 쓰기 오류 > " + e.getMessage());
                     System.exit(-1);
                 }
             }
         }
 
-    @Override
-    public void run() {
-        // 특정 소캣에 대해서 receiveMessages
-        receiveMessages(clientSocket);
-    }
+        void broadcasting(String msg) {
+            for (ClientHandler h : users) {
+                h.sendMessage(msg);
+            }
+        }
+
+        private void receiveMessages(Socket cs) {
+                try {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(cs.getInputStream(), "UTF-8"));
+                    out = new BufferedWriter(new OutputStreamWriter(cs.getOutputStream(), "UTF-8"));
+
+                    String message;
+                    while ((message = in.readLine()) != null) {
+                        if (message.contains("/uid")) {
+                            // message.indexOf : 실제 uid가 나오는 부분의 인덱스
+                            // subString : 해당 인덱스의 내용 추출
+                            uid = message.substring(message.indexOf("/uid:") + 5);
+                            printDisplay("새 참가자: " + uid);
+                            printDisplay("현재 참가자 수 : " + users.size());
+                        }
+                        else {
+                            message = (uid + ": " + message);
+                            printDisplay(message);
+                            broadcasting(message);
+                        }
+                    }
+                    printDisplay("클라이언트가 연결을 종료했습니다.");
+                } catch (IOException e) {
+                    System.err.println("서버 읽기 오류 > " + e.getMessage());
+                } finally {
+                    try {
+                        users.remove(this);
+                        cs.close();
+                        out.close();
+                        clientSocket.close();
+                        //스레드 종료 처리 어떻게?
+                    } catch (IOException ex) {
+                        System.err.println("서버 닫기 오류 > " + ex.getMessage());
+                        System.exit(-1);
+                    }
+                }
+            }
+
+        @Override
+        public void run() {
+            // 특정 소캣에 대해서 receiveMessages
+            receiveMessages(clientSocket);
+        }
 }
 
     public static void main(String[] args) {
