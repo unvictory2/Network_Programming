@@ -8,24 +8,27 @@ import java.net.Socket;
 
 public class EchoServerGUI extends JFrame {
     int port;
-    ServerSocket serverSocket;
-    JTextArea t_display; // 상단의 텍스트필드. 이벤트 처리 등을 위해 현재 클래스의 다른 메서드에서도 접근이 필요한 요소는 참조변수의 선언을 멤버필드(클래스의 멤버변수를 선언하는 위치) 영역에 선언
-    // 즉 기존에 createDisplayPanel()에서 생성하던 textArea는 다른 곳에서도 접근 가능해야 하니까 여기에 만든다. 이름수정.
+    ServerSocket serverSocket = null;
+
+    JTextArea t_display;
 
     public EchoServerGUI(int port) {
         super("EchoServerGUI");
-        this.port = port;
-        buildGUI();
-        this.setBounds(100, 200, 400, 300);
 
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setVisible(true); //this는 전부 필수 아니지만 있는 게 나음
+        buildGUI();
+
+        setBounds(100, 200, 400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setVisible(true);
+
+        this.port = port;
+        startServer();
     } // 생성자
 
     private void buildGUI() {
-
-        this.add(createDisplayPanel(), BorderLayout.CENTER);
-        this.add(createControlPanel(), BorderLayout.SOUTH);
+        add(createDisplayPanel(), BorderLayout.CENTER);
+        add(createControlPanel(), BorderLayout.SOUTH);
     }
 
     private void startServer() {
@@ -117,8 +120,6 @@ public class EchoServerGUI extends JFrame {
 
     public static void main(String[] args) {
         int port = 54321;
-
-        EchoServerGUI server = new EchoServerGUI(port);
-        server.startServer();
+        new EchoServerGUI(port);
     }
 }
