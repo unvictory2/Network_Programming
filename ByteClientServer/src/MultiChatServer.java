@@ -3,8 +3,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.Vector;
 
 public class MultiChatServer extends JFrame {
@@ -28,44 +27,9 @@ public class MultiChatServer extends JFrame {
     } // 생성자
 
     private void buildGUI() {
-
-        JPanel southPanel = new JPanel(new GridLayout(1,0)); // 아래에 갈 패널 준비
-        southPanel.add(createControlPanel());
-
-        this.add(createDisplayPanel(), BorderLayout.CENTER);
-        this.add(southPanel, BorderLayout.SOUTH);
-
-//        this.add(createDisplayPanel(), BorderLayout.CENTER);
-//        this.add(createControlPanel(), BorderLayout.SOUTH);
+        add(createDisplayPanel(), BorderLayout.CENTER);
+        add(createControlPanel(), BorderLayout.SOUTH);
     }
-
-    private void startServer() {
-        Socket clientSocket = null;
-        try {
-            serverSocket = new ServerSocket(port);
-            printDisplay("서버가 시작됐습니다.");
-            while (acceptThread == Thread.currentThread()) { // 클라이언트 접속 기다림
-                clientSocket = serverSocket.accept(); // 접속 받음
-                printDisplay("클라이언트가 연결됐습니다.");
-                //스레드 생성해서 시키기
-                ClientHandler cHandler = new ClientHandler(clientSocket);
-                users.add(cHandler);
-                cHandler.start();
-            }
-        } catch (IOException e) {
-//            System.err.println("서버 소캣 종료 : " + e.getMessage());
-            printDisplay("서버 소캣 종료");
-        }
-        finally {
-            try {
-                    if (clientSocket != null) clientSocket.close();
-                    if (serverSocket != null) serverSocket.close();
-                } catch (IOException e) {
-                    System.err.println("서버 닫기 오류 > " + e.getMessage());
-                    System.exit(-1);
-                }
-            }
-        }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
@@ -140,6 +104,39 @@ public class MultiChatServer extends JFrame {
         t_display.setCaretPosition(t_display.getDocument().getLength());
     }
 
+    private void startServer() {
+        Socket clientSocket = null;
+        try {
+            serverSocket = new ServerSocket(port);
+            printDisplay("서버가 시작됐습니다. " + getLocalAddr());
+
+            while (acceptThread == Thread.currentThread()) { // 클라이언트 접속 기다림
+                clientSocket = serverSocket.accept(); // 접속 받음
+
+                String cAddr = clientSocket.getInetAddress().getHostAddress();
+                printDisplay("클라이언트가 연결됐습니다: " + cAddr + "\n");
+                //스레드 생성해서 시키기
+                ClientHandler cHandler = new ClientHandler(clientSocket);
+                users.add(cHandler);
+                cHandler.start();
+            }
+        } catch (SocketException e) {
+//            System.err.println("서버 소캣 종료 : " + e.getMessage());
+            printDisplay("서버 소캣 종료");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                    if (clientSocket != null) clientSocket.close();
+                    if (serverSocket != null) serverSocket.close();
+                } catch (IOException e) {
+                    System.err.println("서버 닫기 오류 > " + e.getMessage());
+                    System.exit(-1);
+                }
+            }
+        }
+
     private void disconnect() {
         try {
             acceptThread = null;
@@ -149,6 +146,20 @@ public class MultiChatServer extends JFrame {
             System.err.println("서버 닫기 오류 > " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    // localhost의 ip 주소 문자열로 반환
+    private String getLocalAddr() {
+        InetAddress local = null;
+        String addr = "";
+        try {
+            local = InetAddress.getLocalHost();
+            addr = local.getHostAddress();
+            System.out.println(addr);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return addr;
     }
 
     private class ClientHandler extends Thread {
@@ -174,8 +185,8 @@ public class MultiChatServer extends JFrame {
         }
 
         void broadcasting(String msg) {
-            for (ClientHandler h : users) {
-                h.sendMessage(msg);
+            for (ClientHandler c : users) {
+                c.sendMessage(msg);
             }
         }
 
@@ -187,27 +198,26 @@ public class MultiChatServer extends JFrame {
                     String message;
                     while ((message = in.readLine()) != null) {
                         if (message.contains("/uid")) {
-                            // message.indexOf : 실제 uid가 나오는 부분의 인덱스
-                            // subString : 해당 인덱스의 내용 추출
-                            uid = message.substring(message.indexOf("/uid:") + 5);
+                            // : 다음 내용 가져오기
+                            String[] tok = message.split(":");
+                            uid = tok[1];
                             printDisplay("새 참가자: " + uid);
                             printDisplay("현재 참가자 수 : " + users.size());
+                            continue;
                         }
-                        else {
                             message = (uid + ": " + message);
                             printDisplay(message);
                             broadcasting(message);
-                        }
                     }
-                    printDisplay("클라이언트가 연결을 종료했습니다.");
+                    users.removeElement(this);
+                    printDisplay(uid + " 퇴장. 현재 참가자 수: " + users.size());
                 } catch (IOException e) {
-                    System.err.println("서버 읽기 오류 > " + e.getMessage());
+                    users.removeElement(this);
+                    printDisplay(uid + " 연결 끊김. 현재 참가자 수: " + users.size());
                 } finally {
                     try {
-                        users.remove(this);
+                        // 소캣 cs 닫으면 여기서 야기된 스트림들도 자동으로 닫힌다.
                         cs.close();
-                        out.close();
-                        clientSocket.close();
                         //스레드 종료 처리 어떻게?
                     } catch (IOException ex) {
                         System.err.println("서버 닫기 오류 > " + ex.getMessage());

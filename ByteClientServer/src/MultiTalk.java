@@ -33,14 +33,14 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
     }
 
     private void buildGUI() {
-            JPanel southPanel = new JPanel(new GridLayout(3,0)); // 아래에 갈 패널 준비
-            southPanel.add(createInputPanel());
-            southPanel.add(createInfoPanel());
-            southPanel.add(createControlPanel());
+        add(createDisplayPanel(), BorderLayout.CENTER);
 
-            this.add(createDisplayPanel(), BorderLayout.CENTER);
-            this.add(southPanel, BorderLayout.SOUTH);
-        }
+        JPanel p_input = new JPanel(new GridLayout(3,0)); // 아래에 갈 패널 준비
+        p_input.add(createInputPanel());
+        p_input.add(createInfoPanel());
+        p_input.add(createControlPanel());
+        add(p_input, BorderLayout.SOUTH);
+    }
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
@@ -56,7 +56,7 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
         t_input = new JTextField(30);
         t_input.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                sendMessage(t_input.getText());
+                sendMessage();
             }
         });
 
@@ -65,7 +65,7 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
         b_send.addActionListener(new ActionListener() { // 이벤트 리스너
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                sendMessage(t_input.getText());
+                sendMessage();
             }
         });
 
@@ -78,12 +78,18 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
     }
 
     private JPanel createInfoPanel() {
-        JPanel p = new JPanel();
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT));
         InetAddress local = null;
 
-        t_userID = new JTextField(5);
-        t_hostAddr = new JTextField(8);
+        t_userID = new JTextField(7);
+        t_hostAddr = new JTextField(12);
         t_portNum = new JTextField(5);
+
+        t_userID.setText("guest" + getLocalAddr().split("\\.")[3]);
+        t_hostAddr.setText(this.serverAddress);
+        t_portNum.setText(String.valueOf(this.serverPort));
+
+        t_portNum.setHorizontalAlignment(JTextField.CENTER);
 
         t_userID.addActionListener(new ActionListener() {
             @Override
@@ -106,18 +112,6 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
             }
         });
 
-        try {
-            local = InetAddress.getLocalHost();
-            String addr = local.getHostAddress();
-            String[] part = addr.split("\\.");
-            t_userID.setText("guest" + part[3]);
-        } catch (UnknownHostException e) {
-            System.err.println("호스트 찾을 수 없음 > " + e.getMessage());
-        }
-        t_hostAddr.setText(serverAddress);
-        t_portNum.setText(String.valueOf(serverPort));
-
-
         p.add(new JLabel("아이디:"));
         p.add(t_userID);
         p.add(new JLabel("서버주소:"));
@@ -129,20 +123,44 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
     }
 
     private JPanel createControlPanel() { // 제일 밑단 버튼 3개, 접속하기 접속끊기 종료하기
-
         b_connect = new JButton("접속하기");
         b_connect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                serverAddress = t_hostAddr.getText();
-                serverPort = Integer.parseInt(t_portNum.getText());
-                String returnMsg = connectToServer(serverAddress, serverPort);
-                if (Objects.equals(returnMsg, "Success")) {
-                    printDisplay("소캣 연결 성공");
+                //MultiTalk.this 안 써줘도 되는데 명시적으로 쓸 거면 다 써야 된다. 그냥 this는 외부에 있는 클래스 MultiTalk를 지칭하지 않고 이 함수 내부를 의미하기 때문.
+                MultiTalk.this.serverAddress = t_hostAddr.getText();
+                MultiTalk.this.serverPort = Integer.parseInt(t_portNum.getText());
+
+                try {
+                    connectToServer();
                     sendUserID();
-                } else {
-                    printDisplay("소캣 생성 오류 > " + returnMsg);
+                } catch (UnknownHostException e1) {
+                    printDisplay("서버 주소와 포트 번호를 확인하세요 : " + e1.getMessage());
+                    //버튼 상태 안 바꾸고 빠져나옴
+                    return;
+                } catch (IOException e1) {
+                    printDisplay("서버와의 연결 오류 : " + e1.getMessage());
+                    return;
                 }
+
+                b_connect.setEnabled(false);
+                b_disconnect.setEnabled(true);
+
+                t_input.setEnabled(true);
+                b_send.setEnabled(true);
+                b_exit.setEnabled(false);
+
+                t_userID.setEditable(false);
+                t_hostAddr.setEditable(false);
+                t_portNum.setEditable(false);
+
+//                String returnMsg = connectToServer(serverAddress, serverPort);
+//                if (Objects.equals(returnMsg, "Success")) {
+//                    printDisplay("소캣 연결 성공");
+//                    sendUserID();
+//                } else {
+//                    printDisplay("소캣 생성 오류 > " + returnMsg);
+//                }
             }
         });
 
@@ -172,33 +190,29 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
         return panel;
     }
 
-    private void sendUserID() {
+    // localhost의 ip 주소 문자열로 반환
+    private String getLocalAddr() {
+        InetAddress local = null;
+        String addr = "";
         try {
-            out.write("/uid:" + t_userID.getText() + '\n');
-            out.flush();
-        } catch (IOException e) {
-            System.err.println("클라이언트 쓰기 오류 > " + e.getMessage());
-            System.exit(-1);
+            local = InetAddress.getLocalHost();
+            addr = local.getHostAddress();
+            System.out.println(addr);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         }
+        return addr;
     }
 
-    private String connectToServer(String serverAddress, int serverPort) {
+    private void connectToServer() throws UnknownHostException, IOException {
+        socket = new Socket();
+        SocketAddress sa = new InetSocketAddress(serverAddress, serverPort);
+        // 서버 연결, 타임아웃 3초
+        socket.connect(sa, 3000);
 
-            socket = new Socket();
-            SocketAddress sa = new InetSocketAddress(serverAddress, serverPort);
-        try {
-            // 서버 연결, 타임아웃 3초
-            socket.connect(sa, 3000);
-        } catch (IOException e) {
-            return e.getMessage();
-        }
+        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 
-        try {
-            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-        } catch (IOException e) {
-            return e.getMessage();
-        }
         receiveThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -208,37 +222,46 @@ public class MultiTalk extends JFrame{ // 내가 프레임의 후손이 되는 �
             }
         });
         receiveThread.start();
-        b_connect.setEnabled(false);
-        b_disconnect.setEnabled(true);
-        b_exit.setEnabled(false);
-        b_send.setEnabled(true);
-        return "Success";
     }
 
-    private void sendMessage(String inputText) {
-        if (inputText.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
-        else {
-            try {
-                out.write(inputText + '\n');
-                out.flush();
-            } catch (IOException e) {
-                System.err.println("클라이언트 쓰기 오류 > " + e.getMessage());
-                System.exit(-1);
-            }
-            t_input.setText(""); // 보낸 후 입력창은 비우기
+    private void sendUserID() {
+        String uid = t_userID.getText();
+        try {
+            ((BufferedWriter)out).write("/uid:" + uid + '\n');
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("클라이언트 일반 전송 오류 > " + e.getMessage());
+            System.exit(-1);
         }
+        t_input.setText("");
+    }
+
+    private void sendMessage() {
+        String message = t_input.getText();
+        if (message.isEmpty()) return; // 입력창 비었으면 아무것도 안 함
+        try {
+            ((BufferedWriter)out).write(message + '\n');
+            out.flush();
+        } catch (IOException e) {
+            System.err.println("클라이언트 일반 전송 오류 > " + e.getMessage());
+            System.exit(-1);
+        }
+        t_input.setText(""); // 보낸 후 입력창은 비우기
     }
 
     private void receiveMessage() {
-        String inMsg;
+
         try {
-            while((inMsg = ((BufferedReader)in).readLine()) != null)
-                printDisplay(inMsg);
+            String inMsg = ((BufferedReader)in).readLine();
+            if (inMsg == null) {
+                disconnect();
+                printDisplay("서버 연결 끊김");
+                return;
+            }
+            printDisplay(inMsg);
         } catch (IOException e) {
             System.err.println("클라이언트 일반 수신 오류 > " + e.getMessage());
         }
-        disconnect();
-        printDisplay("서버 연결 종료");
     }
 
     private void disconnect() {
