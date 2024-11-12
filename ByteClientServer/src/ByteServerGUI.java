@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -42,7 +43,11 @@ public class ByteServerGUI extends JFrame {
             System.err.println("서버 소캣 생성 실패 : " + e.getMessage());
             System.exit(-1);
         }
+
+
+
     }
+    
 
     private JPanel createDisplayPanel() { // 최상단 JTextArea
         t_display = new JTextArea();
